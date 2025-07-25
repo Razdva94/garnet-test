@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+	font-family: 'InterR';
+	src: url('../../shared/assets/fonts/Inter-Regular.otf') format('opentype');
+}
+
+@font-face {
+	font-family: 'InterB';
+	src: url('../../shared/assets/fonts/Inter-Bold.otf') format('opentype');
+}
