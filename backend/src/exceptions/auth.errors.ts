@@ -1,6 +1,5 @@
 import { HttpException } from '@nestjs/common';
 
-// exceptions/auth.errors.ts
 export class TokenExpiredError extends HttpException {
   constructor() {
     super(
