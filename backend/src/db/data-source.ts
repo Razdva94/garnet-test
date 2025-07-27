@@ -2,11 +2,9 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import * as path from 'path';
 
-// Автоматически выбираем .env-файл по NODE_ENV
 const envFile = `.env.${process.env.ENV_FILE || 'development.local'}`;
 config({ path: path.resolve(process.cwd(), envFile) });
 
-// Единая конфигурация для всех сред
 export const dataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,

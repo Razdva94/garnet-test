@@ -27,27 +27,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let stack: string | undefined;
 
     if (exception instanceof HttpException) {
-      // Обработка стандартных HTTP-исключений NestJS
       status = exception.getStatus();
       message = exception.getResponse();
     } else if (exception instanceof Error) {
-      // Обработка непредвиденных ошибок (TypeError, etc)
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = exception.message;
       stack = exception.stack;
       this.logger.error(exception.message, exception.stack);
     } else {
-      // Неизвестный тип ошибки
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       message = 'Internal server error';
     }
 
-    // Логирование для дебага
     this.logger.error(
       `Error: ${typeof message === 'string' ? message : (message as any).message} | Path: ${request.url} | Stack: ${exception instanceof Error && exception.stack}`,
     );
 
-    // Форматируем ответ
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
