@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { RefreshToken } from '../auth/refreshToken.entity';
 
 @Entity()
 export class User {
@@ -9,21 +10,13 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  // @Column({
-  //   type: 'integer',
-  //   nullable: true,
-  //    default: null,
-  // })
-  // age: number | null;
+  @Column()
+  name: string;
 
   @Column()
   @Exclude()
   password: string;
 
-  @Column({
-    type: 'varchar',
-    nullable: true,
-    default: null,
-  })
-  refreshToken: string | null;
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refreshTokens: RefreshToken[];
 }

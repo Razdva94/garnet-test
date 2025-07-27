@@ -4,6 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { IJwtPayload } from '../interfaces/jwt-payload.interface';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { RefreshTokensRepository } from '../refreshTokens.repository';
+import { UsersService } from 'src/users/users.service';
 
 interface RequestWithCookies extends Request {
   cookies: {
@@ -12,7 +14,11 @@ interface RequestWithCookies extends Request {
 }
 @Injectable()
 export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private refreshTokenRepository: RefreshTokensRepository,
+    private usersService: UsersService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (req: RequestWithCookies): string | null => {
@@ -22,13 +28,29 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
       ]),
       secretOrKey: `${config.get<string>('refresTokenSecret')}`,
       ignoreExpiration: false,
+      passReqToCallback: true,
     });
   }
 
-  validate(payload: IJwtPayload) {
-    if (!payload) {
-      throw new UnauthorizedException();
+  async validate(req: RequestWithCookies, payload: IJwtPayload) {
+    if (!payload?.userId || !payload?.email) {
+      throw new UnauthorizedException('Invalid token payload');
     }
-    return { userId: payload.sub, email: payload.email };
+
+    const tokenFromDb = await this.refreshTokenRepository.findValidRefreshToken(
+      payload.userId,
+      req.cookies.refreshToken,
+    );
+
+    if (!tokenFromDb) {
+      throw new UnauthorizedException('Token revoked');
+    }
+
+    const user = await this.usersService.findByEmail(payload.email);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return { userId: payload.userId, email: payload.email };
   }
 }

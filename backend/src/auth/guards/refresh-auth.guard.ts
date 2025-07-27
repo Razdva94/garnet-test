@@ -6,6 +6,11 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 
+interface IUser {
+  userId: number;
+  email: string;
+}
+
 @Injectable()
 export class ConditionalRefreshAuthGuard extends AuthGuard('refresh') {
   constructor(private configService: ConfigService) {
@@ -17,13 +22,16 @@ export class ConditionalRefreshAuthGuard extends AuthGuard('refresh') {
     return enabled ? super.canActivate(context) : true;
   }
 
-  handleRequest(err: any, user: any) {
-    if (!this.configService.get<boolean>('auth')) {
-      return true;
-    }
+  handleRequest<TUser = IUser>(
+    err: any,
+    user: any,
+    info: any,
+    context: ExecutionContext,
+    status?: any,
+  ): TUser {
     if (err || !user) {
-      throw err || new UnauthorizedException();
+      throw err || new UnauthorizedException('Invalid refresh token');
     }
-    return user;
+    return user as TUser;
   }
 }

@@ -6,7 +6,6 @@ import {
   Res,
   UseGuards,
   Inject,
-  Logger,
   Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -16,18 +15,19 @@ import { ConditionalRefreshAuthGuard } from './guards/refresh-auth.guard';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ConditionalJwtAuthGuard } from './guards/jwt-auth.guard';
+import { ExtendedLoggerService } from './interfaces/logger.interface';
 
 interface CustomRequest extends Request {
   user: { userId: number; email: string };
 }
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly config: ConfigService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
-    private readonly logger: Logger,
+    private readonly logger: ExtendedLoggerService,
   ) {}
 
   @Post('login')
@@ -50,12 +50,28 @@ export class AuthController {
     return { accessToken, refreshToken };
   }
 
+  @Get('check')
+  @UseGuards(ConditionalRefreshAuthGuard)
+  async checkAuth(@Req() req: CustomRequest, @Res() res: Response) {
+    const user = req.user;
+    const accessToken = this.authService.generateTokens(
+      user.userId,
+      user.email,
+    ).accessToken;
+
+    return res.json({
+      user,
+      accessToken,
+    });
+  }
+
   @Post('register')
   async register(
     @Body('email') email: string,
     @Body('password') password: string,
+    @Body('name') name: string,
   ) {
-    return this.authService.register(email, password);
+    return this.authService.register(name, email, password);
   }
 
   @UseGuards(ConditionalRefreshAuthGuard)
@@ -66,10 +82,9 @@ export class AuthController {
   ) {
     if (!this.config.get('auth') === false) {
       const userEmail = req.user.email;
-      const oldRefreshToken = req.cookies.refreshToken;
 
       const { refreshToken, accessToken } =
-        await this.authService.refreshTokens(userEmail, oldRefreshToken);
+        await this.authService.refreshTokens(userEmail);
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: this.config.get('nodeEnv') === 'production',
@@ -80,12 +95,11 @@ export class AuthController {
 
       return { refreshToken, accessToken };
     } else {
-      this.logger?.debug('Пропуск рефреша');
+      this.logger.debug('Пропуск рефреша');
     }
   }
 
-  @UseGuards(ConditionalJwtAuthGuard)
-  @Get('logout')
+  @Post('logout')
   async logout(
     @Req() req: CustomRequest,
     @Res({ passthrough: true }) res: Response,

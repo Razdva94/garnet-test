@@ -1,28 +1,20 @@
-import { ConfigService } from '@nestjs/config';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { config } from 'dotenv';
+import * as path from 'path';
 
-export const getDataSourceOptions = (
-  configService: ConfigService,
-): TypeOrmModuleOptions => ({
+// Автоматически выбираем .env-файл по NODE_ENV
+const envFile = `.env.${process.env.ENV_FILE || 'development.local'}`;
+config({ path: path.resolve(process.cwd(), envFile) });
+
+// Единая конфигурация для всех сред
+export const dataSource = new DataSource({
   type: 'postgres',
-  host: configService.get<{
-    host: string;
-  }>('db')?.host,
-  port: parseInt(
-    configService.get<{
-      port: string;
-    }>('db')?.port || '5432',
-  ),
-  username: configService.get<{
-    user: string;
-  }>('db')?.user,
-  password: configService.get<{
-    pass: string;
-  }>('db')?.pass,
-  database: configService.get<{
-    name: string;
-  }>('db')?.name,
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '5432'),
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
   entities: ['dist/**/*.entity.js'],
   migrations: ['dist/db/migrations/*.js'],
-  synchronize: configService.get('synchronize'),
+  synchronize: false,
 });

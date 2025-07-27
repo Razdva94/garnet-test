@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  db:
+    container_name: pg_db_333
+    image: postgres:16
+    ports:
+      - '5438:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Sirosin222
+      POSTGRES_DB: garnet
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  back:
+    build:
+      context: .
+      dockerfile: dockerfile_back
+    environment:
+      DATABASE_URL: 'postgresql://postgres:Sirosin222@db:5432/garnet?schema=public'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Sirosin222
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "while ! nc -z db 5432; do sleep 1; done &&
+      npm run start:dev"
+
+  front:
+    build:
+      context: .
+      dockerfile: dockerfile_front
+    ports:
+      - '8000:8000'
+    depends_on:
+      - back
+    command: npm run dev -- --host
+
+volumes:
+  postgres_data:
+

@@ -1,7 +1,7 @@
 export type AppNamedConfig = {
   name: string;
   auth: boolean;
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  logLevel: 'debug' | 'verbose' | 'log' | 'warn' | 'error';
   accessExpires: string;
   refreshExpires: string;
   synchronize: boolean;
@@ -12,7 +12,7 @@ export const appConfigs: AppNamedConfig[] = [
     name: 'dev',
     auth: true,
     logLevel: 'debug',
-    accessExpires: '15m',
+    accessExpires: '1m',
     refreshExpires: '7d',
     synchronize: true,
   },
@@ -22,12 +22,12 @@ export const appConfigs: AppNamedConfig[] = [
     logLevel: 'warn',
     accessExpires: '15m',
     refreshExpires: '7d',
-    synchronize: true,
+    synchronize: false,
   },
   {
     name: 'testing',
     auth: false,
-    logLevel: 'info',
+    logLevel: 'log',
     accessExpires: '15m',
     refreshExpires: '7d',
     synchronize: true,

@@ -1,0 +1,25 @@
+FROM node:20.11.1-alpine
+
+WORKDIR /app
+
+# Устанавливаем только необходимые зависимости
+RUN apk add --no-cache postgresql-client
+
+# Копируем зависимости
+COPY backend/package*.json ./
+
+# Чистая установка
+RUN npm cache clean --force && \
+    npm install
+
+# Копируем исходный код
+COPY ./backend/. .
+
+# Сборка проекта
+RUN npm run build
+
+# Скрипт ожидания БД
+
+
+EXPOSE 3000
+CMD ["sh", "-c", "npm run start:dev"]

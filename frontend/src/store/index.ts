@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { api } from '@/shared';
+import { authApi } from '@/features/auth';
+import { contactApi } from '@/widgets';
 
 export const store = configureStore({
 	reducer: {
-		[api.reducerPath]: api.reducer,
+		[authApi.reducerPath]: authApi.reducer,
+		[contactApi.reducerPath]: contactApi.reducer,
 	},
 	middleware: (getDefaultMiddleware) =>
-		getDefaultMiddleware().concat(api.middleware),
+		getDefaultMiddleware().concat(authApi.middleware, contactApi.middleware),
 });
 
 export {};

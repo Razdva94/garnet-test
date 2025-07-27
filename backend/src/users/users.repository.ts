@@ -14,19 +14,12 @@ export class UsersRepository {
     return this.userRepository.findOne({ where: { email } });
   }
 
-  async createUser(email: string, password: string): Promise<User> {
-    const user = this.userRepository.create({ email, password });
+  async createUser(
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<User> {
+    const user = this.userRepository.create({ name, email, password });
     return this.userRepository.save(user);
-  }
-
-  async updateRefreshToken(
-    id: number,
-    refreshToken: string | undefined,
-  ): Promise<void> {
-    await this.userRepository.update(id, { refreshToken });
-  }
-
-  async deleteRefreshToken(id: number): Promise<void> {
-    await this.userRepository.update({ id }, { refreshToken: null });
   }
 }

@@ -1,48 +1,29 @@
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import {
   BadRequestException,
   Injectable,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/user.entity';
 import { ConfigService } from '@nestjs/config';
+import { RefreshTokensRepository } from './refreshTokens.repository';
+import { ExtendedLoggerService } from './interfaces/logger.interface';
 
-interface JwtPayload {
-  email: string;
-  sub: string;
-  iat?: number;
-  exp?: number;
-}
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly refreshTokensRepository: RefreshTokensRepository,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: ExtendedLoggerService,
   ) {}
 
-  async validateRefreshToken(refreshToken: string): Promise<User> {
-    if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token not found');
-    }
-
-    const decoded = this.jwtService.verify<JwtPayload>(refreshToken, {
-      secret: this.config.get('refresTokenSecret'),
-    });
-
-    if (!decoded.email) {
-      throw new UnauthorizedException('Invalid token payload');
-    }
-
-    const user = await this.usersService.findByEmail(decoded.email);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return user;
-  }
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.usersService.findByEmail(email);
     if (!user) return null;
@@ -61,21 +42,42 @@ export class AuthService {
     }
 
     const tokens = this.generateTokens(user.id, user.email);
-    await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return tokens;
   }
 
-  async register(email: string, password: string) {
+  async updateRefreshToken(
+    userId: number,
+    refreshToken: string | undefined,
+  ): Promise<void> {
+    this.logger.verbose(
+      `Обновление refresh-токена для пользователя с ID: ${userId}`,
+    );
+
+    return this.refreshTokensRepository.updateRefreshToken(
+      userId,
+      refreshToken,
+    );
+  }
+
+  async register(name: string, email: string, password: string) {
     const hashedPassword: string = await bcrypt.hash(password, 10);
-    const user = await this.usersService.createUser(email, hashedPassword);
+    const user = await this.usersService.createUser(
+      name,
+      email,
+      hashedPassword,
+    );
     const tokens = this.generateTokens(user.id, user.email);
-    await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.refreshTokensRepository.createRefreshToken(
+      user.id,
+      tokens.refreshToken,
+    );
     return tokens;
   }
 
   generateTokens(userId: number, email: string) {
-    const payload = { sub: userId, email };
+    const payload = { userId, email };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.config.get('acessTokenSecret'),
       expiresIn: this.config.get('accessExpires'),
@@ -88,21 +90,28 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refreshTokens(email: string, refreshToken: string) {
+  async refreshTokens(email: string) {
     if (!email) {
       throw new BadRequestException('Email обязателен');
     }
     const user = await this.usersService.findByEmail(email);
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user) {
       throw new UnauthorizedException('Неверный refresh token');
     }
 
     const tokens = this.generateTokens(user.id, user.email);
-    await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
     return tokens;
   }
 
   async handleLogout(userId: number) {
-    await this.usersService.deleteRefreshToken(userId);
+    await this.deleteRefreshToken(userId);
+  }
+
+  async deleteRefreshToken(userId: number): Promise<void> {
+    this.logger.verbose(
+      `Удаление refresh-токена для пользователя с ID: ${userId}`,
+    );
+    return this.refreshTokensRepository.deleteRefreshToken(userId);
   }
 }

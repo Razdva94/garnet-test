@@ -6,15 +6,26 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshStrategy } from './strategies/refresh.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RefreshToken } from './refreshToken.entity';
+import { RefreshTokensRepository } from './refreshTokens.repository';
+import { ContactsModule } from 'src/contacts/contacts.module';
 
 @Module({
   imports: [
     forwardRef(() => UsersModule),
+    forwardRef(() => ContactsModule),
+    TypeOrmModule.forFeature([RefreshToken]),
     PassportModule,
     JwtModule.register({}),
     PassportModule.register({}),
   ],
-  providers: [AuthService, JwtStrategy, RefreshStrategy],
+  providers: [
+    RefreshTokensRepository,
+    AuthService,
+    JwtStrategy,
+    RefreshStrategy,
+  ],
   controllers: [AuthController],
   exports: [AuthService],
 })

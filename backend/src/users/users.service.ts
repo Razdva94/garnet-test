@@ -1,19 +1,15 @@
-import {
-  Injectable,
-  Inject,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { UsersRepository } from './users.repository';
 import { User } from './user.entity';
+import { ExtendedLoggerService } from 'src/auth/interfaces/logger.interface';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
-    private readonly logger: Logger,
+    private readonly logger: ExtendedLoggerService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -21,23 +17,14 @@ export class UsersService {
     return this.usersRepository.findByEmail(email);
   }
 
-  async createUser(email: string, password: string): Promise<User> {
-    this.logger.log(`Создание нового пользователя с email: ${email}`);
-    return this.usersRepository.createUser(email, password);
-  }
-
-  async updateRefreshToken(
-    id: number,
-    refreshToken: string | undefined,
-  ): Promise<void> {
-    this.logger.verbose(
-      `Обновление refresh-токена для пользователя с ID: ${id}`,
+  async createUser(
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<User> {
+    this.logger.debug(
+      `Создание нового пользователя с email: ${email}; name: ${name}`,
     );
-    return this.usersRepository.updateRefreshToken(id, refreshToken);
-  }
-
-  async deleteRefreshToken(id: number): Promise<void> {
-    this.logger.verbose(`Удаление refresh-токена для пользователя с ID: ${id}`);
-    return this.usersRepository.deleteRefreshToken(id);
+    return this.usersRepository.createUser(name, email, password);
   }
 }

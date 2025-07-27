@@ -3,10 +3,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { getDataSourceOptions } from './db/data-source';
+import { getDataSourceOptions } from './db/data-source.config';
 import { WinstonModule } from 'nest-winston';
 import { createWinstonConfig } from './config/logger.config';
 // import { RedisModule } from './redis/redis.module';
+import { ContactsModule } from './contacts/contacts.module';
 import appConfig from './config/configuration';
 import * as dotenv from 'dotenv';
 
@@ -32,7 +33,7 @@ const envFilePath = process.env.ENV_FILE;
       useFactory: (configService: ConfigService) =>
         createWinstonConfig(configService),
     }),
-    // RedisModule,
+    ContactsModule,
   ],
   controllers: [],
   providers: [],
